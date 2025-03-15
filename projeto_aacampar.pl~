@@ -1,0 +1,805 @@
+% ist1109852 Pedro Miguel Andrade da Costa Vicente
+:- use_module(library(clpfd)). % para poder usar transpose/2
+:- set_prolog_flag(answer_write_options,[max_depth(0)]). % ver listas completas
+:- ["puzzlesAcampar.pl"]. % Ficheiro dado. No Mooshak tera mais puzzles.
+% Atencao: nao deves copiar nunca os puzzles para o teu ficheiro de codigo
+% Segue-se o codigo
+:-debug.
+
+%Predicado vizinhanca/2
+% vizinhanca((L, C), Vizinhanca) e verdadeiro quando a lista corresponde
+% as posicoes adjacentes na vertical e na horizontal de posicao de
+% coordenadas (L,C).
+
+vizinhanca((L,C), Vizinhanca):-
+    %Obtencao das coordenadas da posicao
+    Lmenos1 is L-1,
+    Lmais1 is L+1,
+    Cmenos1 is C-1,
+    Cmais1 is C+1,
+
+    %Adicionar as posicoes a vizinhanca
+    append([[(Lmenos1,C),(L,Cmenos1),
+            (L, Cmais1),(Lmais1,C)]],Vizinhanca).
+
+
+%Predicado VizinhancaAlargada/2
+% vizinhancaAlargada((L, C), VizinhancaAlargada) e verdadeiro quando
+% Vizinhanca e a lista com as posicoes ao arredor da posicao (L,C) na
+% diagonal, na vetical e na horizontal.
+
+vizinhancaAlargada((L,C),Vizinhanca):-
+    %Obtencao das coordenadas da posicao
+    Lmenos1 is L-1,
+    Lmais1 is L+1,
+    Cmenos1 is C-1,
+    Cmais1 is C+1,
+
+    %Adicionar as posicoes a vizinhanca
+    append([[(Lmenos1,Cmenos1),(Lmenos1,C),
+            (Lmenos1, Cmais1),(L,Cmenos1),
+            (L,Cmais1),(Lmais1, Cmenos1),
+            (Lmais1, C),(Lmais1,Cmais1)]],
+           Vizinhanca).
+
+
+%Predicado todasCelulas/2
+% todasCelulas(Tabuleiro, TodasCelulas) e verdadeiro quando TodasCelulas
+% e uma lista com todas a posicoes do Tabuleiro.
+
+%Introducao do processo iterativo e de mais um argumento para a posicao
+todasCelulas(Tabuleiro, TodasCelulas):-
+    todasCelulas( Tabuleiro,(1,1),[], TodasCelulas).
+
+%Base de recursao
+todasCelulas([],_, TodasCelulas,TodasCelulas):-!.
+
+%Obtencao das posicoes da mesma linha
+todasCelulas([[_|R_primeira_lista]|Restantes],(Linha, Coluna),
+             ListaAuxiliar, TodasCelulas):-
+
+    append(ListaAuxiliar, [(Linha,Coluna)],NovoTodasCelulas),
+    Nova_coluna is Coluna +1,
+    todasCelulas([R_primeira_lista|Restantes],(Linha,Nova_coluna),
+                 NovoTodasCelulas,TodasCelulas).
+
+%Mudanca para a linha posterior
+todasCelulas([[]|Restantes],(Linha, _), ListaAuxiliar, TodasCelulas):-
+    Nova_linha is Linha +1,
+    todasCelulas(Restantes,(Nova_linha,1),ListaAuxiliar,TodasCelulas).
+
+
+
+
+%Predicado todasCelulas/3
+% todasCelulas(Tabuleiro, TodasCelulas, Objecto) e verdadeiro quando
+% TodasCelulas e uma lista ordenada sem elementos repetidos com todas as
+% posicoes onde o Objecto esta presente no Tabuleiro
+
+
+todasCelulas(Tabuleiro, TodasCelulas, Objecto):-
+    todasCelulas(Tabuleiro, PosicoesTabuleiro),
+    !,
+    todasCelulas( Tabuleiro,PosicoesTabuleiro,[], TodasCelulas,
+                  Objecto).
+
+
+%Base de recursao
+todasCelulas( [],[],TodasCelulas, TodasCelulas,_):-!.
+
+% Caso Objecto seja uma variavel livre, entao prentendemos determinar os
+% espacos vazios
+todasCelulas([[Primeiro|R_primeira_lista]|Restantes],
+             [Posicao|R_posicoes],ListaAuxiliar,
+             TodasCelulasFinal, Objecto):-
+
+    var(Primeiro),
+    var(Objecto),
+    append(ListaAuxiliar,[Posicao],NovoTodasCelulas),
+    !,
+    todasCelulas([R_primeira_lista|Restantes],R_posicoes,
+                 NovoTodasCelulas,TodasCelulasFinal,Objecto).
+
+%Obtencao das posicoes onde o objecto aparece
+todasCelulas([[Primeiro|R_primeira_lista]|Restantes],
+             [Posicao|R_posicoes],ListaAuxiliar,
+             TodasCelulasFinal, Objecto):-
+
+    Primeiro==Objecto,
+    append(ListaAuxiliar,[Posicao],NovoTodasCelulas),
+    !,
+    todasCelulas([R_primeira_lista|Restantes],R_posicoes,
+                 NovoTodasCelulas,TodasCelulasFinal,Objecto).
+
+% Se o Primeiro elemento nao e igual ao objeto pretendido, entao
+% passamos para proxima posicao
+todasCelulas([[Primeiro|R_primeira_lista]|Restantes],
+            [_|R_posicoes] ,ListaAuxiliar, TodasCelulas,
+             Objecto):-
+
+    Primeiro\==Objecto,
+    todasCelulas([R_primeira_lista|Restantes],R_posicoes,
+                 ListaAuxiliar,TodasCelulas,Objecto).
+
+%Mudanca para a linha posterior
+todasCelulas([[]|Restantes],TodasPosicoes,ListaAuxiliar,
+             TodasCelulas, Objecto):-
+    !,
+    todasCelulas(Restantes,TodasPosicoes,ListaAuxiliar,
+                 TodasCelulas,Objecto).
+
+
+%Predicado auxiliar objetosNaLinhas/3
+
+% objectoNaLinha(Linha,Objecto, N_Vezes) que e verdadeiro se N_vezes e o
+% numero de vezes que o objecto aparece na lista linha
+objectoNaLinha(Objecto,Linha,N_vezes):-
+    todasCelulas([Linha],PosicoesObjecto, Objecto),
+    length(PosicoesObjecto, N_vezes).
+
+%Predicado calculaObjectosTabuleiro/4
+% calculaObjectosTabuleiro(Tabuleiro, ContagemLinhas, ContagemColunas,
+% Objecto) e verdade se Tabuleiro for mesmo um tabuleiro, ContagemLinhas
+% for uma lista com o numero de vezes que o objecto aparece em cada
+% linha do tabuleiro, ContagemColunas for uma lista com o numero de
+% vezes que o objecto aparece nas colunas e objecto for mesmo um
+% objecto
+
+calculaObjectosTabuleiro(Tabuleiro,ContagemLinhas,
+                         ContagemColunas,Objecto):-
+    transpose(Tabuleiro, TabuleiroTransposto),
+    maplist(objectoNaLinha(Objecto), Tabuleiro, ContagemLinhas),
+    maplist(objectoNaLinha(Objecto),TabuleiroTransposto, ContagemColunas).
+
+
+%Predicado celulaVazia/2
+% Para podermos determinar se a posicao e vazia temos que criar mais
+% duas variaveis, uma para as linhas e outra para as colunas
+
+%Caso a posicao seja vazia
+celulaVazia(Tabuleiro,Posicao):-
+    todasCelulas(Tabuleiro, TodasCelulasVazias, _),
+    member(Posicao,TodasCelulasVazias).
+
+%Caso a posicao seja relva
+celulaVazia(Tabuleiro,Posicao):-
+    todasCelulas(Tabuleiro,TodasCelulasRelva, r),
+    member(Posicao, TodasCelulasRelva).
+
+%Caso a posicao nao esteja presente no Tabuleiro
+celulaVazia(Tabuleiro, Posicao):-
+    todasCelulas(Tabuleiro,TodasCelulas),
+    \+member(Posicao,TodasCelulas).
+
+
+
+%Predicado insereObjectoCelula/3
+% insereObjectoCelula(Tabuleiro, TendaOuRelva, (L, C)) e verdadeiro
+% se Tabuleiro e um tabuleiro e (L,C) e a posicao do tabuleiro onde
+% queremos colocar uma tenda ou uma relva
+
+insereObjectoCelula(Tabuleiro, TendaOuRelva, Posicao_Original):-
+    celulaVazia(Tabuleiro, Posicao_Original),
+    todasCelulas(Tabuleiro, TodasCelulas),!,
+    insereObjectoCelula(Tabuleiro, TodasCelulas,TendaOuRelva, Posicao_Original).
+
+%Caso a celula nao seja vazia, o tabuleiro mantem-se
+insereObjectoCelula(Tabuleiro, _, Posicao_Original):-
+    \+celulaVazia(Tabuleiro, Posicao_Original),!.
+
+% Caso a posicao de coordendas (Linha,Coluna) igual a Posicao_Original,
+% entao insere-se a relva ou a tenda pretendida nessa posicao
+insereObjectoCelula([[TendaOuRelva|_]|_],
+                    [PosicaoAtual|_],
+                    TendaOuRelva,PosicaoAtual):-
+    !.
+
+
+
+%Caso Contrario, continua a verificar ate chegar a posicao pretendida
+insereObjectoCelula([[_|R_Lista]|Restantes], [PosicaoAtual|RestantesPosicoes],TendaOuRelva,
+                     Posicao_Original):-
+
+    PosicaoAtual\== Posicao_Original,!,
+    insereObjectoCelula([R_Lista|Restantes],
+                        RestantesPosicoes,
+                        TendaOuRelva,Posicao_Original).
+
+% Caso a primeira Lista seja vazia, entao a linha chegou ao fim e
+% percorremos a proxima linha
+insereObjectoCelula([[]|Restantes],TodasCelulas, TendaOuRelva,Posicao_Original):-
+    insereObjectoCelula(Restantes,TodasCelulas, TendaOuRelva,Posicao_Original).
+
+
+%Predicado insereObjectoEntrePosicoes/4
+% insereObjectoEntrePosicoes(Tabuleiro, TendaOuRelva, (L, C1), (L, C2))
+% e verdade se Tabuleiro e um Tabuleiro e (L,C1),(L,C2) sao duas
+% posicoes do Tabuleiro em que pretende-se inserir entre elas(inclusive)
+% o Objeto pretendido
+insereObjectoEntrePosicoes(Tabuleiro, TendaOuRelva,
+                           (L, C1), (L,C2)):-
+
+    %Obtencao de todas Celulas do tabuleiro
+    todasCelulas(Tabuleiro, TodasCelulas),
+
+    %Filtracao de todas as celulas que estejam entre as duas posicoes
+    %pretendidas
+    findall((L,ColunaPosicao),
+            (member((L,ColunaPosicao),TodasCelulas),
+             between(C1,C2,ColunaPosicao)),
+            TodasPosicoesFiltradas),
+
+    %inserir o objecto pretendido nas celulas do tabuleiro
+    maplist(insereObjectoCelula(Tabuleiro, TendaOuRelva),
+            TodasPosicoesFiltradas),!.
+
+
+%Predicado auxiliar iguais/3
+% iguais(Elemento1, Elemento2, Validacao) e verdadeiro caso o primeiro e
+% o segudno elementos sejam iguais, com a constante valido, ou que ambos
+% os elementos sejam diferentes com a palavra invalido
+iguais(Elemento,Elemento,valido):-!.
+iguais(Primeiro, Segundo, invalido):-Primeiro\==Segundo,!.
+
+
+%Predicado relva/1
+% relva(Puzzle) e verdadeiro se todas as entradas das linhas e
+% colunas tem relva cujo ja se atingiu o numero possivel de tendas nas
+% linhas e nas colunas
+
+% Do predicado original, criamos um predicado de ariedade 6, com o
+% com o Tabuleiro do puzzle e o seu Tabuleiro transposto, e as listas
+% com o numero de vezes que a tenda aparece realmente no mapa.
+
+
+relva((Tabuleiro, TodasLinhas, TodasColunas)):-
+
+    %Determinar numero de tendas em cada linha/coluna
+    calculaObjectosTabuleiro(Tabuleiro,AtualTendasLinhas,
+                             AtualTendasColunas,t),
+
+    %Determinar onde e possivel aplicar o predicado
+    maplist(iguais, AtualTendasLinhas, TodasLinhas,
+            LinhasPreenchidas),
+
+    maplist(iguais, AtualTendasColunas, TodasColunas,
+            ColunasPreenchidas),
+
+    %Determinar quais os indices, ou seja, linhas e colunas em
+    %que se vai aplicar o predicado
+    findall(Indice, nth1(Indice, LinhasPreenchidas, valido),
+            ListaIndicesLinhas),
+
+    findall(Indice, nth1(Indice, ColunasPreenchidas, valido),
+            ListaIndicesColunas),
+
+    %Obter o comprimento do Tabuleiro
+    length(Tabuleiro, Comprimento),
+    !,
+    relva(Tabuleiro, ListaIndicesLinhas, ListaIndicesColunas,
+          Comprimento).
+
+%Base de recursao
+relva(_,_,[],[],_):-!.
+
+%Inserir relva nas colunas
+relva(_,TabuleiroTransposto, [],[Indice|RestantesIndices],Comprimento):-
+    insereObjectoEntrePosicoes(TabuleiroTransposto, r, (Indice,1),
+                               (Indice,Comprimento)),
+    !,
+    relva(_,TabuleiroTransposto,[],RestantesIndices,Comprimento).
+
+
+%Obter a Transposta do tabuleiro
+relva(Tabuleiro, [],ListaIndicesColunas,Comprimento):-
+    transpose(Tabuleiro, TabuleiroTransposto),
+    !,
+    relva(Tabuleiro, TabuleiroTransposto,[],ListaIndicesColunas,Comprimento).
+
+
+%Inserir relva nas linhas validas
+relva(Tabuleiro, [Indice|RestantesIndices], ListaIndicesColunas,Comprimento):-
+    insereObjectoEntrePosicoes(Tabuleiro, r, (Indice,1),(Indice,Comprimento)),
+    !,
+    relva(Tabuleiro, RestantesIndices,ListaIndicesColunas,Comprimento).
+
+
+
+
+
+%Predicado inacessiveis/1
+%
+% inacessiveis(Tabuleiro) e verdade se Tabuleiro e um tabuleiro que,
+% apos a aplicacao do predicado, tem relva em todas as posicoes
+% inacessiveis
+
+inacessiveis(Tabuleiro):-
+    %Obtecao a todas as celulas do tabuleiro
+    todasCelulas(Tabuleiro, TodasCelulas),
+
+    %Obtecao de todas as celulas onde estao as arvores
+    todasCelulas(Tabuleiro, Arvores,a),
+
+    %Obtecao de todas as celulas onde estao as tendas
+    todasCelulas(Tabuleiro, Tendas, t),
+
+    %Obter as Vizinhancas das tendas e arvores
+    maplist(vizinhanca,Arvores,VizinhancaArvoresListas),
+    maplist(vizinhancaAlargada,Tendas,VizinhancaTendasListas),
+
+    %Eliminar as sublistas
+    append(VizinhancaArvoresListas, VizinhancaArvores),
+    append(VizinhancaTendasListas, VizinhancaTendas),
+
+    %Determinar as celulas inacessiveis
+    findall(Celula,(member(Celula,TodasCelulas),
+                    \+member(Celula,VizinhancaArvores),
+                    \+member(Celula,VizinhancaTendas)),
+            Inacessiveis),
+    !,
+    inacessiveis(Tabuleiro, TodasCelulas,Inacessiveis).
+
+%Base de recursao
+inacessiveis(_,[],[]):-!.
+
+%Inserir Relva em todas as celulas inacessiveis
+inacessiveis(Tabuleiro,[CelulaInacessivel|RestoCelulas],
+             [CelulaInacessivel|RestoInacessiveis]):-
+
+    insereObjectoCelula(Tabuleiro,r,CelulaInacessivel),
+    !,
+    inacessiveis(Tabuleiro, RestoCelulas,RestoInacessiveis).
+
+%Se nao for uma celula inacessivel, passa para aproxima
+inacessiveis(Tabuleiro,[_|RestoCelulas],Inacessiveis):-
+    !,
+    inacessiveis(Tabuleiro,RestoCelulas,Inacessiveis).
+
+%Predicado aproveita/1,
+%
+% aproveita(Puzzle) e verdade se Puzzle e um puzzle que, apos a
+% aplicacao do predicado, tem tendas em todas as linhas e colunas as
+% quais faltavam colocar X tendas e que tinham X posicoesLivres
+
+
+aproveita((Tabuleiro, TendasLinhas, TendasColunas)):-
+
+    %Determinar o numero de celulas vazias nas linhas e colunas
+    calculaObjectosTabuleiro(Tabuleiro, CelulasVaziasLinhas,
+                             CelulasVaziasColunas, _),
+
+    %Determinar onde e valido aplicar o predicado
+    maplist(iguais, CelulasVaziasLinhas, TendasLinhas,
+            CompletarLinhas),
+
+    maplist(iguais, CelulasVaziasColunas, TendasColunas,
+            CompletarColunas),
+
+    %Determinar quais os indices, ou seja, linhas e colunas em
+    %que se vai aplicar o predicado
+    findall(Indice, nth1(Indice, CompletarLinhas, valido),
+            ListaIndicesLinhas),
+
+    findall(Indice, nth1(Indice, CompletarColunas, valido),
+            ListaIndicesColunas),
+
+
+
+    length(Tabuleiro, Comprimento),
+    !,
+    aproveita(Tabuleiro, ListaIndicesLinhas,ListaIndicesColunas,
+              Comprimento).
+
+%Base de recursao
+aproveita(_,_,[],[],_):-!.
+
+%Inserir relva nas colunas
+aproveita(_,TabuleiroTransposto, [],[Indice|RestantesIndices],Comprimento):-
+    nth1(Indice, TabuleiroTransposto, Coluna),
+    todasCelulas([Coluna],TodasCelulasVazias, _),
+    maplist(insereObjectoCelula([Coluna], t),TodasCelulasVazias),
+    !,
+    aproveita(_,TabuleiroTransposto, [], RestantesIndices,Comprimento).
+
+%Obter a Transposta do tabuleiro
+aproveita(Tabuleiro, [],ListaIndicesColunas,Comprimento):-
+    transpose(Tabuleiro, TabuleiroTransposto),
+    !,
+    aproveita(Tabuleiro, TabuleiroTransposto,[],ListaIndicesColunas,Comprimento).
+
+
+%Inserir relva nas linhas validas
+aproveita(Tabuleiro, [Indice|RestantesIndices], ListaIndicesColunas,Comprimento):-
+    nth1(Indice, Tabuleiro, Linha),
+    todasCelulas([Linha],TodasCelulasVazias, _),
+    maplist(insereObjectoCelula([Linha], t),TodasCelulasVazias),
+    !,
+    aproveita(Tabuleiro, RestantesIndices, ListaIndicesColunas,Comprimento).
+
+
+
+
+
+%Predicado limpaVizinhancas/1
+% LimpaVizinhancas e verdade se apos a aplicacao do predicado todas as
+% posicoes que percentem as vizinhancas das tendas estao preenchidas com
+% relva
+
+limpaVizinhancas((Tabuleiro, _,_)):-
+    %Obtencao das celulas do tabuleiro
+    todasCelulas(Tabuleiro, TodasCelulas),
+
+    %Obtencao das celulas onde estao as tendas
+    todasCelulas(Tabuleiro, Tendas, t),
+
+    %Obtencao das vizinhancas das celulas com tendas
+    maplist(vizinhancaAlargada, Tendas, TodasVizinhancasListas),
+
+    %Remover as sublistas
+    append(TodasVizinhancasListas, TodasVizinhancasTemporarias),
+
+    %filtrar todas as celulas que pertencem ao tabuleiro
+    findall(Posicao, (member(Posicao,TodasVizinhancasTemporarias),
+                     member(Posicao, TodasCelulas)),
+            TodasVizinhancasPosicoes),
+
+    limpaVizinhancas_aux(Tabuleiro,TodasVizinhancasPosicoes).
+
+%Base de Recursao
+limpaVizinhancas_aux(_,[]):-!.
+
+% Inserir relva em todas as celulas que pertencem as vizinhancas das
+% tendas
+limpaVizinhancas_aux(Tabuleiro,[Posicao|RestantesPosicoes]):-
+    insereObjectoCelula(Tabuleiro, r, Posicao),
+    !,
+    limpaVizinhancas_aux(Tabuleiro,RestantesPosicoes).
+
+%Predicado unicaHipotese/1
+% unicaHipotese(Puzzle) e verdade caso todas as arvores que tinham
+% apenas uma celula livre na sua vizinhanca apos a aplicacao do
+% predicado essa posicao fica preenchida com uma tenda
+
+unicaHipotese((Tabuleiro,_,_)):-
+    todasCelulas(Tabuleiro, TodasCelulasTabuleiro),
+    todasCelulas(Tabuleiro, TodasArvores,a),
+    todasCelulas(Tabuleiro, TodasRelvas, r),
+    todasCelulas(Tabuleiro, TodasTendas, t),
+    unicaHipotese(Tabuleiro,TodasCelulasTabuleiro,
+                  TodasArvores, TodasRelvas, TodasTendas).
+
+
+%Base de recursao
+unicaHipotese(_,_,[],_,_):-!.
+
+%Caso contrario vai para a proxima posicao
+unicaHipotese(Tabuleiro,TodasCelulasTabuleiro,
+              [ArvorePosicao|RestantesArvores],
+              TodasRelvas,TodasTendas):-
+
+    %Todas as posicoes onde se encontram tendas na vizinhanca da arvore
+    vizinhanca(ArvorePosicao, VizinhancaArvore),
+
+    %Verificacao de que ja existe pelo menos um tenda na vizinhanca
+    %da arvore
+    findall(PosicaoTenda,(member(PosicaoTenda, TodasTendas),
+                          member(PosicaoTenda,VizinhancaArvore)),
+            TendasNaVizinhanca),
+
+    \+length(TendasNaVizinhanca, 0),
+
+    !,
+    unicaHipotese(Tabuleiro,TodasCelulasTabuleiro,
+                  RestantesArvores, TodasRelvas,TodasTendas).
+
+% Caso a arvores nao tenha tendas em seu redor e tenha mais que uma
+% posicao livre ou que nao tenha posicoes livres
+unicaHipotese(Tabuleiro,TodasCelulasTabuleiro,
+              [ArvorePosicao|RestantesArvores],
+              TodasRelvas,TodasTendas):-
+
+    %Todas as posicoes onde se encontram tendas na vizinhanca da arvore
+    vizinhanca(ArvorePosicao, VizinhancaArvore),
+
+    %Remover todas as vizinhancas que nao pertencem ao tabuleiro
+    findall(Posicao, (member(Posicao, TodasCelulasTabuleiro),
+                      member(Posicao, VizinhancaArvore)),
+            VizinhancaArvoreFiltrada),
+
+    %Encontrar todas as posicoes livres
+    findall(Posicao, (member(Posicao, VizinhancaArvoreFiltrada),
+                      \+member(Posicao, TodasTendas),
+                      \+member(Posicao, TodasRelvas),
+                      \+member(Posicao,[ArvorePosicao|RestantesArvores])),
+            PosicaoLivre),
+
+    %caso exista nenhuma ou mais que uma posicoes nas posicoes livres,
+    %entao nao e possivel concluir nada
+    \+length(PosicaoLivre, 1),
+     !,
+    unicaHipotese(Tabuleiro,TodasCelulasTabuleiro,
+                  RestantesArvores, TodasRelvas,TodasTendas).
+
+
+
+% Caso a vizinhanca da arvore so tenha uma celula livre entao insere-se
+% uma tenda na mesma
+unicaHipotese(Tabuleiro,TodasCelulasTabuleiro,
+              [ArvorePosicao|RestantesArvores],
+              TodasRelvas,TodasTendas):-
+
+    %Obtencao da vizinhanca da arvore
+    vizinhanca(ArvorePosicao, VizinhancaArvore),
+
+    %Verificacao de que ja existe pelo menos um tenda na vizinhanca
+    %da arvore
+    findall(PosicaoTenda,(member(PosicaoTenda, TodasTendas),
+                          member(PosicaoTenda,VizinhancaArvore)),
+            TendasNaVizinhanca),
+
+    length(TendasNaVizinhanca, 0),
+
+    %Remover todas as vizinhancas que nao pertencem ao tabuleiro
+    findall(Posicao, (member(Posicao, TodasCelulasTabuleiro),
+                      member(Posicao, VizinhancaArvore)),
+            VizinhancaArvoreFiltrada),
+
+
+
+    %Todas as posicoes livres na vizinhanca da arvore
+    findall(Posicao, (member(Posicao, VizinhancaArvoreFiltrada),
+                      \+member(Posicao, TodasTendas),
+                      \+member(Posicao, TodasRelvas),
+                      \+member(Posicao,[ArvorePosicao|RestantesArvores])),
+            PosicaoLivre),
+
+    %Caso seja apenas uma posicao, entao insere-se uma tenda nessa posicao
+    length(PosicaoLivre, 1),
+
+    maplist(insereObjectoCelula(Tabuleiro, t),
+            PosicaoLivre),
+
+    todasCelulas(Tabuleiro, NovoTodasTendas, t),
+
+    !,
+    unicaHipotese(Tabuleiro,TodasCelulasTabuleiro,
+                  RestantesArvores, TodasRelvas,NovoTodasTendas).
+
+
+%Predicado valida/2
+% valida(LArv, LTen) e verdade caso LArv e LTen sao as listas com todas
+% as cooredenadas em que existem arvores e tendas, respetivamente, e e
+% validado caso seja verdade que e possivel estabelecer somente uma
+% unica tenda para cada arvore nas suas vizinhancas
+
+%Para verificarmos que e possivel ligar somente uma tenda a cada arvore,
+% temos que averiguar que nao existem arvores isoladas nem tendas
+% isoladas.
+
+valida(LArv, LTen):-
+    %Obtencao de todas as vizinhancas das arvores
+    maplist(vizinhanca,LArv, VizinhancasArvores),
+
+    %Obtencao de todas as vizinhancas simples das tendas
+    maplist(vizinhanca, LTen, VizinhancaTendas),
+
+    %Obtencao de todas as vizinhancas Alargada das tendas
+    maplist(vizinhancaAlargada, LTen, VizinhancaAlargadaTendas),
+    !,
+    valida(LArv,LTen,VizinhancasArvores,VizinhancaTendas,
+           VizinhancaAlargadaTendas).
+
+%Base de recursao
+valida(_,_,[],[],[]):-!.
+
+
+%Verificar que nao existem arvores isoladas
+valida(LArv,LTen,[PrimeiraVizinhanca|RestantesVizinhancas],
+       VizinhancaTendas,VizinhancaAlargadaTendas):-
+
+    %Encontrar todas as tendas na vizinhanca da arvore
+    findall(Celula,(member(Celula,LTen),
+                    member(Celula,PrimeiraVizinhanca)),
+            TendasArvore),
+
+    %Todas as arvores tem que estar associadas a uma tenda,
+    %Logo tem que existir pelo menos uma tenda na vizinhanca
+    %da arvore
+    \+length(TendasArvore,0),
+    !,
+    valida(LArv,LTen,RestantesVizinhancas,
+           VizinhancaTendas,VizinhancaAlargadaTendas).
+
+%Verificar que nao existem tendas isoladas
+valida(LArv,LTen,[],[VizinhancaTenda|RestantesVizinhancas],
+       VizinhancaAlargadaTendas):-
+
+    %Encontrar todas as arvores na vizinhanca da tenda
+    findall(Celula, (member(Celula,LArv),
+                     member(Celula,VizinhancaTenda)),
+            ArvoresTendas),
+
+    %Todas as arvores tem que estar associada a uma tenda
+    %Logo tem que existir pelo menos uma arvore na vizinhanca
+    %da arvore
+    \+length(ArvoresTendas,0),
+    !,
+    valida(LArv,LTen,[],RestantesVizinhancas,
+       VizinhancaAlargadaTendas).
+
+%Verificar que nao existem tendas nas vizinhancas de outras tendas
+valida(LArv,LTen,[],[],[TendaAlargada|RestantesVizinhancas]):-
+
+    %Encontrar todas as tendas na vizinhanca da tenda
+    findall(Celula, (member(Celula,LTen),
+                     member(Celula,TendaAlargada)),
+            TendasInvalidas),
+
+    %Nao podem existir tendas na vizinhanca alargada de outra tenda
+    %Logo a lista TendasInvalidas tem que ser []
+    TendasInvalidas==[],
+    !,
+    valida(LArv,LTen, [],[], RestantesVizinhancas).
+
+
+%Predicado resolve/1
+% resolve(Puzzle) e verdade se apos a aplicacao do predicado o mesmo
+% fica resolvido
+
+resolve((Tabuleiro, TendasLinhas, TendasColunas)):-
+    %Preencher as linhas com relva que ja tenham o maximo numero
+    %de tendas
+    relva((Tabuleiro, TendasLinhas, TendasColunas)),
+
+
+    %Preencher as posicoes inacessiveis
+    inacessiveis(Tabuleiro),
+    resolve((Tabuleiro, TendasLinhas, TendasColunas),[]).
+
+%Quando o puzzle estiver resolvido
+resolve((Tabuleiro, TendasLinhas, TendasColunas),_):-
+
+    %Obtencao da lista de todas as celulas vazias to tabuleiro
+    todasCelulas(Tabuleiro, CelulasVazias,_),
+
+    %Caso nao haja celulas vazias, entao o puzzle ja foi
+    %supostamente resolvido
+    length(CelulasVazias,0),
+
+    %Verificar se o numero de tendas nas linhas e colunas
+    %e igual ao pretendido
+    calculaObjectosTabuleiro(Tabuleiro, AtualLinhasTendas,
+                             AtualColunasTendas,t),
+
+    AtualLinhasTendas==TendasLinhas,
+    AtualColunasTendas==TendasColunas,
+
+    %Obtencao de todas as arvores
+    todasCelulas(Tabuleiro, CelulasArvores, a),
+
+    %Obtencao de todas as tendas
+    todasCelulas(Tabuleiro, CelulasTendas,t),
+
+    %Se for possivel associar uma arvore a somente uma tenda,
+    %entao a resolucao e valida
+    valida(CelulasArvores, CelulasTendas),
+    !.
+
+%Resolucao Do puzzle
+resolve((Tabuleiro, TendasLinhas, TendasColunas),TabuleiroAnterior):-
+
+
+
+    %Obtencao da lista de todas as celulas vazias do tabuleiro
+    %e do anterior
+    todasCelulas(TabuleiroAnterior, CelulasVaziasAnteriores,_),
+    todasCelulas(Tabuleiro, CelulasVazias,_),
+    CelulasVazias\==CelulasVaziasAnteriores,
+    copy_term(Tabuleiro, TabuleiroCopiado),
+
+
+    %Caso o numero de celulas vazias seja diferente de 0
+    %entao o puzzle nao for resolvido
+    \+length(CelulasVazias,0),
+
+    %Completar as linhas com tendas
+    aproveita((Tabuleiro, TendasLinhas, TendasColunas)),
+
+
+    %Preencher as posicoes presentes nas vizinhancas das tendas com relva
+    limpaVizinhancas((Tabuleiro, TendasLinhas, TendasColunas)),
+
+
+    %Caso uma linha ou coluna tenha o maximo de tendas possiveis,
+    %preencher com relva
+    relva((Tabuleiro, TendasLinhas, TendasColunas)),
+
+
+
+    %Inserir tendas nas arvores com apenas uma hipotese de ligacao
+    unicaHipotese((Tabuleiro, TendasLinhas, TendasColunas)),
+
+
+    %Inserir relva nas posicoes da vizinhanca da tenda
+    limpaVizinhancas((Tabuleiro, TendasLinhas, TendasColunas)),
+
+    %Inserir relva nas linhas e colunas ja completas
+    relva((Tabuleiro, TendasLinhas, TendasColunas)),
+
+
+    %voltar a realisar este processo ate o tabuleiro
+    %ficar totalmente preenchido
+    resolve((Tabuleiro, TendasLinhas, TendasColunas),TabuleiroCopiado).
+
+
+% Caso as estrategias nao resultem entao coloca-se uma tenda hipotetica
+% na primeira celula vazia de uma dada arvore
+resolve((Tabuleiro, TendasLinhas, TendasColunas),
+        TabuleiroAnterior):-
+
+    %Obtencao das celulas vazias
+    todasCelulas(Tabuleiro, CelulasVazias,_),
+
+    %Obtencao da primeira Celula Vazia
+    nth1(1,CelulasVazias, TendaHipotetica),
+
+    %Inserir uma tenda hipotetica na primeira celula vazias
+    insereObjectoCelula(Tabuleiro, t, TendaHipotetica),
+
+    %Obtencao de todas celulas com tendas
+
+    todasCelulas(Tabuleiro, TodasTendas, t),
+    %Verificar se nao existe nenhuma tenda na
+    %vizinhanca da tenda hipotetica
+    vizinhancaAlargada(TendaHipotetica, VizinhancaTenda),
+    findall(Tenda,(member(Tenda, VizinhancaTenda),
+                   member(Tenda,TodasTendas)),
+            TendasPerto),
+
+    length(TendasPerto,0),
+    %Inserir relva nas posicoes da vizinhanca da tenda
+    limpaVizinhancas((Tabuleiro, TendasLinhas, TendasColunas)),
+
+    %Inserir relva nas linhas e colunas ja completas
+    relva((Tabuleiro, TendasLinhas, TendasColunas)),
+
+
+    resolve((Tabuleiro, TendasLinhas, TendasColunas),
+            TabuleiroAnterior).
+
+% Caso as restantes regras nao funcionem, entao a celula vazia
+%tera de ser relva
+resolve((Tabuleiro, TendasLinhas, TendasColunas),
+        TabuleiroAnterior):-
+
+
+    %Obtencao das celulas vazias
+
+    todasCelulas(Tabuleiro, CelulasVazias,_),
+
+    nth1(1, CelulasVazias, PrimeiraVazia),
+
+    %Introduzir uma relva na primeira celula vazia, uma vez que
+    %falhou quando foi uma tenda
+
+    insereObjectoCelula(Tabuleiro, r, PrimeiraVazia),
+
+    %Inserir relva nas posicoes da vizinhanca da tenda
+    limpaVizinhancas((Tabuleiro, TendasLinhas, TendasColunas)),
+
+    %Inserir relva nas linhas e colunas ja completas
+    relva((Tabuleiro, TendasLinhas, TendasColunas)),
+
+
+    resolve((Tabuleiro, TendasLinhas, TendasColunas),
+            TabuleiroAnterior).
+
+
+
+
+
+
+
+
+
+
