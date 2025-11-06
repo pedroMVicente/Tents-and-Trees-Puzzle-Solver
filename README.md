@@ -1,4 +1,4 @@
-# 🏕️ Logic Programming Project
+# Logic Programming Project
 ## A “Tents and Trees” Puzzle Solver in Prolog
 
 ### 📘 Project Overview
