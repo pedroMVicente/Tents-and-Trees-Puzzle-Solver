@@ -1,7 +1,7 @@
-🏕️ Logic Programming Project
-A “Tents and Trees” Puzzle Solver in Prolog
+# 🏕️ Logic Programming Project
+## A “Tents and Trees” Puzzle Solver in Prolog
 
-📘 Project Overview
+### 📘 Project Overview
 
 This project was developed as part of the Logic for Programming course (2023–2024).
 The goal is to implement a solver for the well-known logic puzzle “Tents and Trees” using Prolog.
@@ -16,7 +16,7 @@ The number of tents in each row and column must match the provided clues.
 
 The program uses logical reasoning and constraint solving to automatically find valid solutions to the puzzles.
 
-⚙️ Features
+### ⚙️ Features
 
 Representation of puzzles using lists of lists (matrix structure).
 
@@ -36,7 +36,7 @@ Cleaning tent surroundings (no adjacent tents).
 
 A backtracking-based solver to explore possible solutions when logic alone isn’t enough.
 
-🧩 Implemented Predicates
+### 🧩 Implemented Predicates
 
 Some of the main predicates implemented include:
 
@@ -54,13 +54,13 @@ valida/2 – ensures a one-to-one relation between trees and tents.
 
 resolve/1 – attempts to solve the puzzle completely.
 
-🧠 Technologies Used
+### 🧠 Technologies Used
 
 Language: Prolog (SWI-Prolog recommended)
 
 Libraries: clpfd for constraint logic programming
 
-🗂️ Project Structure
+### 🗂️ Project Structure
 
 project/
 │
@@ -68,7 +68,7 @@ project/
 ├── projectoLP_Acampar.pdf # Project description (this document)
 └── main.pl                # Your main Prolog implementation file
 
-🚀 How to Run
+### 🚀 How to Run
 
 1) Open the project in SWI-Prolog.
 
@@ -81,7 +81,7 @@ project/
 4) Solve it:
    ?- resolve(P).
 
-🧑‍💻 Author
+### 🧑‍💻 Author
 
 Pedro Vicente
 Logic for Programming — 2023/2024
